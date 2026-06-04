@@ -9,7 +9,8 @@ from src.data_loader import (
     service_requests_311,
     street_network,
     local_area_boundary,
-    property_parcels
+    property_parcels,
+    austin_crime
 )
 
 #%%
@@ -213,3 +214,48 @@ folium.GeoJson(
 
 folium.LayerControl(position='topright').add_to(infrastructure_map)
 # infrastructure_map.save("network_map.html")
+
+#%%
+"""
+AUSTIN MAP
+"""
+
+df_austin = austin_crime.copy()
+
+df_austin['X-coordinate'] = pd.to_numeric(df_austin['X-coordinate'], errors='coerce')
+df_austin['Y-coordinate'] = pd.to_numeric(df_austin['Y-coordinate'], errors='coerce')
+
+df_clean = df_austin[
+    (df_austin['X-coordinate'].notnull()) &
+    (df_austin['Y-coordinate'].notnull()) &
+    (df_austin['X-coordinate'] != 0.0) &
+    (df_austin['Y-coordinate'] != 0.0)
+].copy()
+
+gdf2 = gpd.GeoDataFrame(
+    df_clean,
+    geometry=gpd.points_from_xy(df_clean['X-coordinate'], df_clean['Y-coordinate']),
+    crs="EPSG:26914"
+).to_crs("EPSG:4326")
+
+
+austin_map = folium.Map(
+    location=[30.2672, -97.7431],
+    zoom_start=12,
+    tiles='CartoDB positron'
+)
+
+cluster = MarkerCluster().add_to(austin_map)
+
+for _, row in gdf2.iterrows():
+    folium.CircleMarker(
+        location=[row.geometry.y, row.geometry.x],
+        radius=5,
+        color="crimson",
+        fill=True,
+        fill_opacity=0.7,
+        popup=f"<b>Type:</b> {row.get('TYPE', 'N/A')}<br>"
+              f"<b>Address:</b> {row.get('ADDRESS', 'N/A')}"
+    ).add_to(cluster)
+
+austin_map.save("austin_map.html")

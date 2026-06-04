@@ -9,6 +9,7 @@ service_requests_311 = pd.read_csv(f"{BASE}/3-1-1-service-requests.csv", delimit
 # austin_full = pd.read_csv(f"{BASE}/austin_full.csv", low_memory=False)
 # austin_crime = pd.read_csv(f"{BASE}/austin_texas_crime_data.csv", low_memory=False)
 vancouver_crime = pd.read_csv(f"{BASE}/vancouver_crime_data.csv", low_memory=False)
+austin_crime = pd.read_excel(f"{BASE}/2025_Data.xlsx")
 
 # GeoJSONs
 city_boundary = gpd.read_file(f"{BASE}/city-boundary.geojson")

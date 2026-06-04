@@ -172,7 +172,7 @@ for idx, row in gdf_joined.iterrows():
     folium.CircleMarker(
         location=[row.geometry.y, row.geometry.x],
         radius=2,
-        color='#00ffff',
+        color='#b3ecec',
         fill=True,
         fill_opacity=0.7,
         weight=0,
@@ -210,15 +210,6 @@ folium.GeoJson(
     }
 ).add_to(infrastructure_map)
 
-folium.GeoJson(
-    gdf_parcels,
-    name="Property Parcels",
-    style_function=lambda feature: {
-        'color': '#ffffff',
-        'weight': 0.3,
-        'fillOpacity': 0.05
-    }
-).add_to(infrastructure_map)
 
 folium.LayerControl(position='topright').add_to(infrastructure_map)
-# infrastructure_map.save("infrastructure_map.html")
+# infrastructure_map.save("network_map.html")

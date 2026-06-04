@@ -18,4 +18,4 @@ data/raw/street_lights.json
 # Maps
 map.html
 unified_map.html
-infrastructure_map.html
+network_map.html

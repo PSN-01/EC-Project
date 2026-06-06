@@ -6,9 +6,7 @@ BASE_RAW = "/Users/p.silva/Documents/GitHub/EC-Project/data/raw"
 BASE_V = f"{BASE_RAW}/Vancouver Data"
 BASE_ATX = f"{BASE_RAW}/Austin Tx Data"
 
-# ==========================================
 # VANCOUVER DATA
-# ==========================================
 
 # Vancouver CSVs
 service_requests_311_v = pd.read_csv(f"{BASE_V}/3-1-1-service-requests.csv", delimiter=';', low_memory=False)
@@ -29,9 +27,7 @@ with open(f"{BASE_V}/street_lights.json") as f:
     street_lights_v = json.load(f)
 
 
-# ==========================================
 # AUSTIN TX DATA
-# ==========================================
 
 # Austin Tx CSVs
 austin_311_public = pd.read_csv(f"{BASE_ATX}/Austin_311_Public_Data_20260604.csv", low_memory=False)

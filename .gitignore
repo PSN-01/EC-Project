@@ -4,6 +4,10 @@ data/raw/austin_texas_crime_data.csv
 data/raw/3-1-1-service-requests.csv
 data/raw/austin_full.csv
 data/raw/2025_Data.xlsx
+data/raw/combined_data.csv
+data/raw/Austin Tx Data
+data/raw/Vancouver Data
+
 
 # raw geojson tests
 data/raw/city-boundary.geojson

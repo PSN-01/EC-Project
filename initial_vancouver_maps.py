@@ -6,17 +6,16 @@ from folium.features import DivIcon
 
 from src.data_loader import (
     vancouver_crime,
-    service_requests_311,
-    street_network,
-    local_area_boundary,
-    property_parcels,
-    austin_crime
+    service_requests_311_v,
+    street_network_v,
+    local_area_boundary_v,
+    property_parcels_v,
 )
 
 #%%
-gdf_streets = street_network.to_crs("EPSG:4326")
-gdf_parcels = property_parcels.to_crs("EPSG:4326")
-gdf_neighborhoods = local_area_boundary.to_crs("EPSG:4326")
+gdf_streets = street_network_v.to_crs("EPSG:4326")
+gdf_parcels = property_parcels_v.to_crs("EPSG:4326")
+gdf_neighborhoods = local_area_boundary_v.to_crs("EPSG:4326")
 
 #%%
 """
@@ -214,36 +213,3 @@ folium.GeoJson(
 
 folium.LayerControl(position='topright').add_to(infrastructure_map)
 # infrastructure_map.save("network_map.html")
-
-#%%
-"""
-AUSTIN MAP
-"""
-
-df_austin = austin_crime.copy()
-
-df_austin['Latitude'] = pd.to_numeric(df_austin['Latitude'], errors='coerce')
-df_austin['Longitude'] = pd.to_numeric(df_austin['Longitude'], errors='coerce')
-
-df_clean = df_austin[
-    (df_austin['Latitude'].notnull()) &
-    (df_austin['Longitude'].notnull())
-].copy()
-
-austin_sample = df_clean
-
-austin_map = folium.Map(location=[30.2672, -97.7431], zoom_start=11, tiles='CartoDB positron')
-cluster = MarkerCluster().add_to(austin_map)
-
-for _, row in austin_sample.iterrows():
-    folium.CircleMarker(
-        location=[row['Latitude'], row['Longitude']],
-        radius=5,
-        color="crimson",
-        fill=True,
-        fill_opacity=0.7,
-        popup=f"<b>Type:</b> {row.get('Highest Offense Description', 'N/A')}<br><b>Address:</b> {row.get('Address', 'N/A')}"
-    ).add_to(cluster)
-
-
-austin_map.save("Austin_Map.html")

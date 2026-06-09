@@ -33,6 +33,10 @@ with open(f"{BASE_V}/street_lights.json") as f:
 austin_311_public = pd.read_csv(f"{BASE_ATX}/Austin_311_Public_Data_20260604.csv", low_memory=False)
 austin_crime = pd.read_csv(f"{BASE_ATX}/combined_data.csv", low_memory=False)
 
+# Austin Tx Demo Data
+austin_demo_data = pd.read_csv(f"{BASE_ATX}/merged_output.csv", low_memory=False)
+austin_demo_data = austin_demo_data[['geoid', 'income_household_median', 'county_name', 'lat', 'lng', 'population']]
+
 # Austin Tx GeoJSONs
 neighborhoods_atx = gpd.read_file(f"{BASE_ATX}/Boundaries__City_of_Austin_Neighborhoods_20260605.geojson")
 census_tracts_atx = gpd.read_file(f"{BASE_ATX}/Boundaries__State_of_Texas_Census_Tracts_(Based_off_2020_Census)_20260605.geojson")
@@ -43,3 +47,5 @@ downtown_districts_atx = gpd.read_file(f"{BASE_ATX}/Downtown_Austin_Plan_Distric
 land_use_atx = gpd.read_file(f"{BASE_ATX}/Land_Use_Inventory_Detailed_20260605.geojson")
 street_centerline_atx = gpd.read_file(f"{BASE_ATX}/Street_Centerline_20260605.geojson")
 travis_county_boundary = gpd.read_file(f"{BASE_ATX}/Travis_County_Boundary_Polygon.geojson")
+
+

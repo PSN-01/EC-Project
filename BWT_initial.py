@@ -48,6 +48,62 @@ gdf_311 = gpd.GeoDataFrame(
     crs="EPSG:4326"
 )
 
-# 4. Spatial Joins
+# Spatial Joins
 joined_crime = gpd.sjoin(gdf_crime, gdf_boundaries[[boundary_col, 'geometry']], how="inner", predicate="within")
 joined_311 = gpd.sjoin(gdf_311, gdf_boundaries[[boundary_col, 'geometry']], how="inner", predicate="within")
+
+
+#%%
+"""
+CRIME MAP: CHOROPLETH ONLY
+"""
+
+crime_counts = joined_crime.groupby(boundary_col).size().reset_index()
+crime_counts.columns = ['Boundary_Name', 'Total_Crimes']
+quantiles_crime = crime_counts['Total_Crimes'].quantile([0, 0.2, 0.4, 0.6, 0.8, 1.0]).tolist()
+
+crime_map = folium.Map(location=[30.2672, -97.7431], zoom_start=11, tiles='CartoDB positron')
+
+folium.Choropleth(
+    geo_data=gdf_boundaries[[boundary_col, 'geometry']],
+    name='Crime Density (2014-2026)',
+    data=crime_counts,
+    columns=['Boundary_Name', 'Total_Crimes'],
+    key_on=f'feature.properties.{boundary_col}',
+    fill_color='YlOrRd',
+    fill_opacity=0.6,
+    line_opacity=0.5,
+    legend_name='Total Crimes',
+    bins=quantiles_crime
+).add_to(crime_map)
+
+folium.LayerControl().add_to(crime_map)
+crime_map.save("maps/crime_map_austin.html")
+
+
+#%%
+"""
+311 REPORTS MAP: CHOROPLETH ONLY
+"""
+
+sr_counts = joined_311.groupby(boundary_col).size().reset_index()
+sr_counts.columns = ['Boundary_Name', 'Total_Reports']
+quantiles_311 = sr_counts['Total_Reports'].quantile([0, 0.2, 0.4, 0.6, 0.8, 1.0]).tolist()
+
+sr_map = folium.Map(location=[30.2672, -97.7431], zoom_start=11, tiles='CartoDB positron')
+
+folium.Choropleth(
+    geo_data=gdf_boundaries[[boundary_col, 'geometry']],
+    name='311 Report Density (2014-2026)',
+    data=sr_counts,
+    columns=['Boundary_Name', 'Total_Reports'],
+    key_on=f'feature.properties.{boundary_col}',
+    fill_color='PuBu',
+    fill_opacity=0.6,
+    line_opacity=0.5,
+    legend_name='Total 311 Reports',
+    bins=quantiles_311
+).add_to(sr_map)
+
+folium.LayerControl().add_to(sr_map)
+sr_map.save("maps/311_reports_map_austin.html")

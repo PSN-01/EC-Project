@@ -21,9 +21,4 @@ data/raw/sharp_street_segments.json
 data/raw/street_lights.json
 
 # Maps
-map.html
-unified_map.html
-network_map.html
-Austin_Map.html
-network_map_austin.html
-unified_map_austin.html
+maps

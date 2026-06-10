@@ -1,13 +1,20 @@
 #%%
+
+import importlib
+import src.data_loader as data_loader
+import src.data_wrangling as data_wrangling
+
+importlib.reload(data_loader)
+importlib.reload(data_wrangling)
+
 import folium
 import mapclassify
-from src.data_loader import austin_demo_data
 from src.data_wrangling import (
     joined_crime,
     joined_311,
     gdf_boundaries,
     boundary_col,
-
+    demo_data
 )
 
 gdf_boundaries['area_km2'] = gdf_boundaries.to_crs(epsg=2277).area / 10**6

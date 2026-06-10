@@ -6,7 +6,8 @@ from src.data_loader import (
     census_tracts_atx,
     street_centerline_atx,
     austin_311_public,
-    jurisdictions_atx
+    jurisdictions_atx,
+    austin_demo_data
 )
 
 # Census Tracts and Austin Filter
@@ -21,6 +22,17 @@ gdf_boundaries = gpd.sjoin(
     how='inner',
     predicate='intersects'
 ).drop_duplicates(subset=[boundary_col])
+
+
+"""
+MERGE CENSUS DEMOGRAPHICS
+"""
+
+gdf_boundaries[boundary_col] = gdf_boundaries[boundary_col].astype(str)
+austin_demo_data['GEOID'] = austin_demo_data['GEOID'].astype(str)
+
+austin_valid_geoids = gdf_boundaries[boundary_col].unique().tolist()
+demo_data = austin_demo_data[austin_demo_data['GEOID'].isin(austin_valid_geoids)].copy()
 
 """
 FILTERING RELEVANT CATEGORIES (PRIMERO)

@@ -34,8 +34,7 @@ austin_311_public = pd.read_csv(f"{BASE_ATX}/Austin_311_Public_Data_20260604.csv
 austin_crime = pd.read_csv(f"{BASE_ATX}/combined_data.csv", low_memory=False)
 
 # Austin Tx Demo Data
-austin_demo_data = pd.read_csv(f"{BASE_ATX}/merged_output.csv", low_memory=False)
-austin_demo_data = austin_demo_data[['geoid', 'income_household_median', 'county_name', 'lat', 'lng', 'population']]
+austin_demo_data = pd.read_csv(f"{BASE_ATX}/austin_census_tracts_clean2.csv", low_memory=False)
 
 # Austin Tx GeoJSONs
 neighborhoods_atx = gpd.read_file(f"{BASE_ATX}/Boundaries__City_of_Austin_Neighborhoods_20260605.geojson")

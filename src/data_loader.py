@@ -1,31 +1,10 @@
-import json
+# import json
 import geopandas as gpd
 import pandas as pd
 
 BASE_RAW = "/Users/p.silva/Documents/GitHub/EC-Project/data/raw"
-BASE_V = f"{BASE_RAW}/Vancouver Data"
+
 BASE_ATX = f"{BASE_RAW}/Austin Tx Data"
-
-# VANCOUVER DATA
-
-# Vancouver CSVs
-service_requests_311_v = pd.read_csv(f"{BASE_V}/3-1-1-service-requests.csv", delimiter=';', low_memory=False)
-vancouver_crime = pd.read_csv(f"{BASE_V}/vancouver_crime_data.csv", low_memory=False)
-
-# Vancouver GeoJSONs
-city_boundary_v = gpd.read_file(f"{BASE_V}/city-boundary.geojson")
-local_area_boundary_v = gpd.read_file(f"{BASE_V}/local-area-boundary.geojson")
-property_parcels_v = gpd.read_file(f"{BASE_V}/property-parcel-polygons.geojson")
-street_network_v = gpd.read_file(f"{BASE_V}/street_network.geojson")
-
-# Vancouver JSONs
-with open(f"{BASE_V}/properties.json") as f:
-    properties_v = json.load(f)
-with open(f"{BASE_V}/sharp_street_segments.json") as f:
-    sharp_street_segs_v = json.load(f)
-with open(f"{BASE_V}/street_lights.json") as f:
-    street_lights_v = json.load(f)
-
 
 # AUSTIN TX DATA
 
@@ -46,5 +25,26 @@ downtown_districts_atx = gpd.read_file(f"{BASE_ATX}/Downtown_Austin_Plan_Distric
 land_use_atx = gpd.read_file(f"{BASE_ATX}/Land_Use_Inventory_Detailed_20260605.geojson")
 street_centerline_atx = gpd.read_file(f"{BASE_ATX}/Street_Centerline_20260605.geojson")
 travis_county_boundary = gpd.read_file(f"{BASE_ATX}/Travis_County_Boundary_Polygon.geojson")
+
+# BASE_V = f"{BASE_RAW}/Vancouver Data"
+# VANCOUVER DATA
+
+# Vancouver CSVs
+# service_requests_311_v = pd.read_csv(f"{BASE_V}/3-1-1-service-requests.csv", delimiter=';', low_memory=False)
+# vancouver_crime = pd.read_csv(f"{BASE_V}/vancouver_crime_data.csv", low_memory=False)
+
+# Vancouver GeoJSONs
+# city_boundary_v = gpd.read_file(f"{BASE_V}/city-boundary.geojson")
+# local_area_boundary_v = gpd.read_file(f"{BASE_V}/local-area-boundary.geojson")
+# property_parcels_v = gpd.read_file(f"{BASE_V}/property-parcel-polygons.geojson")
+# street_network_v = gpd.read_file(f"{BASE_V}/street_network.geojson")
+
+# Vancouver JSONs
+# with open(f"{BASE_V}/properties.json") as f:
+#     properties_v = json.load(f)
+# with open(f"{BASE_V}/sharp_street_segments.json") as f:
+#     sharp_street_segs_v = json.load(f)
+# with open(f"{BASE_V}/street_lights.json") as f:
+#     street_lights_v = json.load(f)
 
 

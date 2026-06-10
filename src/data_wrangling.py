@@ -92,8 +92,10 @@ df_crime = df_crime[
     (df_crime['Occurred Date'].dt.year <= 2026)
 ].copy()
 
-# 311 date
+# 311 dates
 df_311['Created Date'] = pd.to_datetime(df_311['Created Date'], errors='coerce')
+df_311['Close Date'] = pd.to_datetime(df_311['Close Date'], errors='coerce')
+
 df_311 = df_311[
     (df_311['Created Date'].dt.year >= 2014) &
     (df_311['Created Date'].dt.year <= 2026)

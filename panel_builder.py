@@ -14,7 +14,6 @@ from src.data_wrangling import (
     boundary_col
 )
 
-#%%
 
 df_311 = joined_311.copy()
 
@@ -93,3 +92,4 @@ final_panel = pd.merge(panel, demo_data, left_on=boundary_col, right_on='GEOID',
 
 # 2014-01 will always have NaN as lag, cause there is no data b4
 final_panel = final_panel.dropna(subset=['Lag_Avg_Repair_Days']).copy()
+final_panel.to_csv("data/clean/final_panel.csv", index=False)

@@ -14,7 +14,8 @@ df_model = final_panel.copy()
 df_model['geoid'] = df_model['geoid'].astype(str)
 df_model['Month_str'] = df_model['Month'].astype(str)
 
-#%% DIAGNOSTICS
+#%%
+# DIAGNOSTICS
 
 mean_crime = df_model['Total_Crime'].mean()
 var_crime  = df_model['Total_Crime'].var()
@@ -39,7 +40,8 @@ print(vif_data)
 zero_pct = (df_model['Total_Crime'] == 0).mean() * 100
 print(f"Zeros: {zero_pct:.2f}% — {'High zero-inflation.' if zero_pct > 30 else 'Within normal range.'}")
 
-#%% CLEAN DATASET
+#%%
+# CLEAN DATASET
 
 cols_to_check = control_vars + ['Total_Crime', 'geoid', 'Month_str']
 df_clean = df_model.dropna(subset=cols_to_check).copy()
@@ -52,19 +54,21 @@ df_lm = df_lm.set_index(['geoid', 'Month_dt'])
 
 endog = df_lm['Total_Crime']
 
-#%% BASELINE MODELS
+#%%
+# BASELINE MODELS
 
 exog_ols = sm.add_constant(df_lm[['Lag_Avg_Repair_Days']])
 
 results_fe = PanelOLS(endog, exog_ols, entity_effects=True, time_effects=True, drop_absorbed=True)\
     .fit(cov_type='clustered', cluster_entity=True)
-# print(results_fe.summary)
+print(results_fe.summary)
 
 results_re = RandomEffects(endog, exog_ols)\
     .fit(cov_type='clustered', cluster_entity=True)
-# print(results_re.summary)
+print(results_re.summary)
 
-#%% HAUSMAN TEST
+#%%
+# HAUSMAN TEST
 
 # Compares FE vs RE to decide which is appropriate.
 # H0: RE is consistent (no correlation between entity effects and regressors).
@@ -83,7 +87,8 @@ hausman_p    = 1 - __import__('scipy.stats', fromlist=['chi2']).chi2.cdf(hausman
 print(f"Hausman stat: {hausman_stat:.4f} | df: {hausman_df} | p-value: {hausman_p:.4f}")
 print("Conclusion: Fixed Effects preferred." if hausman_p < 0.05 else "Conclusion: Random Effects consistent.")
 
-#%% MAIN MODEL — negligence thresholds
+#%%
+# MAIN MODEL — negligence thresholds
 
 conditions = [
     df_lm['Lag_Avg_Repair_Days'] == 0,
@@ -105,9 +110,10 @@ exog_thresh = pd.concat([sm.add_constant(df_lm[demo_controls]), dummies], axis=1
 
 results_thresh_re = RandomEffects(endog, exog_thresh)\
     .fit(cov_type='clustered', cluster_entity=True)
-# print(results_thresh_re.summary)
+print(results_thresh_re.summary)
 
-#%% MAIN MODEL — negligence thresholds with Fixed Effects
+#%%
+# MAIN MODEL — negligence thresholds with Fixed Effects
 
 # FE absorbs all time-invariant tract characteristics (demographics included),
 # so demo_controls are dropped — they would be collinear with entity effects.
@@ -115,7 +121,8 @@ results_thresh_fe = PanelOLS(endog, exog_thresh, entity_effects=True, time_effec
     .fit(cov_type='clustered', cluster_entity=True)
 print(results_thresh_fe.summary)
 
-#%% FIGURE — RE vs FE threshold coefficients
+#%%
+# FIGURE — RE vs FE threshold coefficients
 
 threshold_keys   = ['1_Low_1_7', '2_Med_8_21', '3_High_21plus']
 threshold_labels = ['1–7 days', '8–21 days', '21+ days']
@@ -150,7 +157,8 @@ import os; os.makedirs('figures', exist_ok=True)
 # plt.savefig('figures/threshold_coefs.png', dpi=150)
 plt.show()
 
-#%% PLACEBO TEST
+#%%
+# PLACEBO TEST
 
 # Uses the lead (future month) instead of the lag.
 # If significant, the causal direction is suspect.
@@ -166,7 +174,8 @@ results_placebo = PanelOLS(endog_placebo, exog_placebo,
     .fit(cov_type='clustered', cluster_entity=True)
 print(results_placebo.summary)
 
-#%% DISORDER VS INFRASTRUCTURE
+#%% 
+# DISORDER VS INFRASTRUCTURE
 
 threshold_levels = ['1_Low_1_7', '2_Med_8_21', '3_High_21plus']
 

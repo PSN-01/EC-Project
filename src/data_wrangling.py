@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import geopandas as gpd
 
@@ -15,7 +16,6 @@ gdf_boundaries = census_tracts_atx.to_crs("EPSG:4326")
 gdf_jurisdiction = jurisdictions_atx.to_crs("EPSG:4326")
 boundary_col = 'geoid'
 
-# Keep Austin Tracts
 gdf_boundaries = gpd.sjoin(
     gdf_boundaries,
     gdf_jurisdiction[['geometry']],
@@ -23,22 +23,13 @@ gdf_boundaries = gpd.sjoin(
     predicate='intersects'
 ).drop_duplicates(subset=[boundary_col])
 
-
-"""
-MERGE CENSUS DEMOGRAPHICS
-"""
-
 gdf_boundaries[boundary_col] = gdf_boundaries[boundary_col].astype(str)
 austin_demo_data['GEOID'] = austin_demo_data['GEOID'].astype(str)
 
 austin_valid_geoids = gdf_boundaries[boundary_col].unique().tolist()
 demo_data = austin_demo_data[austin_demo_data['GEOID'].isin(austin_valid_geoids)].copy()
 
-"""
-FILTERING RELEVANT CATEGORIES (PRIMERO)
-"""
-
-# 311 Filters
+# 311 category filters
 bwt_311_categories = [
     'Graffiti Abatement',
     'APH - Graffiti Abatement - Public Property',
@@ -63,7 +54,23 @@ bwt_311_categories = [
 df_311 = austin_311_public.copy()
 df_311 = df_311[df_311['SR Description'].isin(bwt_311_categories)].copy()
 
-# Crime Filters
+# Classify tickets: visible social disorder vs physical infrastructure
+disorder_categories = [
+    'Graffiti Abatement',
+    'APH - Graffiti Abatement - Public Property',
+    'DSD - Graffiti Abatement - Private Property',
+    'Debris in Street',
+    'SBO - Debris in Street',
+    'TPW - Debris in Street',
+    'APD - Vehicle Abatement Report',
+]
+df_311['ticket_type'] = np.where(
+    df_311['SR Description'].isin(disorder_categories),
+    'disorder',
+    'infrastructure'
+)
+
+# Crime category filters
 bwt_crime_categories = [
     'BURGLARY OF VEHICLE', 'BURGLARY NON RESIDENCE', 'BURGLARY OF RESIDENCE',
     'CRIMINAL MISCHIEF', 'THEFT', 'AUTO THEFT', 'THEFT OF AUTO PARTS',
@@ -81,32 +88,22 @@ bwt_crime_categories = [
 df_crime = austin_crime.copy()
 df_crime = df_crime[df_crime['Highest Offense Description'].isin(bwt_crime_categories)].copy()
 
-"""
-DATE FILTER (DESPUÉS DEL CATEGORY FILTER)
-"""
-
-# Crime date
+# Date filters
 df_crime['Occurred Date'] = pd.to_datetime(df_crime['Occurred Date'], errors='coerce')
 df_crime = df_crime[
     (df_crime['Occurred Date'].dt.year >= 2014) &
     (df_crime['Occurred Date'].dt.year <= 2026)
 ].copy()
 
-# 311 dates
 df_311['Created Date'] = pd.to_datetime(df_311['Created Date'], errors='coerce')
-df_311['Close Date'] = pd.to_datetime(df_311['Close Date'], errors='coerce')
-
+df_311['Close Date']   = pd.to_datetime(df_311['Close Date'],   errors='coerce')
 df_311 = df_311[
     (df_311['Created Date'].dt.year >= 2014) &
     (df_311['Created Date'].dt.year <= 2026)
 ].copy()
 
-"""
-CLEANING + GEO (DESPUÉS)
-"""
-
-# Crime coords
-df_crime['Latitude'] = pd.to_numeric(df_crime['Latitude'], errors='coerce')
+# Geo — crime
+df_crime['Latitude']  = pd.to_numeric(df_crime['Latitude'],  errors='coerce')
 df_crime['Longitude'] = pd.to_numeric(df_crime['Longitude'], errors='coerce')
 df_crime = df_crime.dropna(subset=['Latitude', 'Longitude'])
 
@@ -116,8 +113,8 @@ gdf_crime = gpd.GeoDataFrame(
     crs="EPSG:4326"
 )
 
-# 311 coords
-df_311['Latitude Coordinate'] = pd.to_numeric(df_311['Latitude Coordinate'], errors='coerce')
+# Geo — 311
+df_311['Latitude Coordinate']  = pd.to_numeric(df_311['Latitude Coordinate'],  errors='coerce')
 df_311['Longitude Coordinate'] = pd.to_numeric(df_311['Longitude Coordinate'], errors='coerce')
 df_311 = df_311.dropna(subset=['Latitude Coordinate', 'Longitude Coordinate'])
 
@@ -127,10 +124,7 @@ gdf_311 = gpd.GeoDataFrame(
     crs="EPSG:4326"
 )
 
-"""
-SPATIAL JOIN (AL FINAL)
-"""
-
+# Spatial joins
 joined_crime = gpd.sjoin(
     gdf_crime,
     gdf_boundaries[[boundary_col, 'geometry']],

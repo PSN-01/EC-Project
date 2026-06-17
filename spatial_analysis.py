@@ -200,7 +200,8 @@ ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
 plt.tight_layout()
 plt.savefig('figures/spatial_threshold_ex_ante_historical.png', dpi=150)
 plt.show()
-#
+
+#%%
 #
 # import numpy as np
 # import pandas as pd

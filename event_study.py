@@ -184,10 +184,13 @@ for label, mask in [('Short neglect (1–7 days)',  df_es['days_open'] <= 7),
     print(f"\n  {label}  (n tickets = {mask.sum() // len(RADII_METERS):,})")
     print(sub.to_string())
 
-# %% SMALL MULTIPLES - 3x3 MATRIX (VISUAL TRICK & FIXED TITLE OVERLAP)
+# %% SMALL MULTIPLES - 3x3 MATRIX (ENHANCED CARTOGRAPHIC DETAILS)
 
 import matplotlib.lines as mlines
 import matplotlib.patches as mpatches
+
+# Importamos la fuente para el contorno cartográfico exterior
+from src.data_wrangling import gdf_boundaries as austin_boundary
 
 STUDY_MONTH = 6  # Example: 6 = June
 RADII_METERS = [50, 100, 200]
@@ -200,44 +203,48 @@ VISUAL_RADII = {
     200: 350  # Drawn as 350m
 }
 
-# 0. City boundary (Austin, TX)
-austin_bounds = data_loader.jurisdictions_atx.copy().to_crs(CRS_METRIC)
-austin_bounds = austin_bounds.dissolve()
+# 0. PREPARAR GEOMETRÍAS BASE
+# A. Contorno exterior de la ciudad (Austin, TX)
+austin_limits = austin_boundary.copy().to_crs(CRS_METRIC)
+austin_limits = austin_limits.dissolve()
 
-# 1. Filter crimes for the specific month and year
+# B. Subdivisiones internas (Census Tracts) recortadas con el contorno real
+texas_tracts = data_loader.census_tracts_atx.copy().to_crs(CRS_METRIC)
+austin_tracts = gpd.clip(texas_tracts, austin_limits)
+
+# 1. Filtrar los crímenes para el mes específico
 gdf_crime_month = gdf_crime[(gdf_crime['Occurred Date'].dt.year == STUDY_YEAR) &
                             (gdf_crime['Occurred Date'].dt.month == STUDY_MONTH)].copy()
 
-# 2. Filter tickets for the month and calculate days open
+# 2. Filter tickets de desorden y calcular días abiertos
 mask_tickets = (gdf_disorder['Created Date'].dt.month == STUDY_MONTH) & \
                (gdf_disorder['Created Date'].dt.year == STUDY_YEAR)
 gdf_tickets_month = gdf_disorder[mask_tickets].copy()
 
 gdf_tickets_month['days_open'] = (gdf_tickets_month['Close Date'] - gdf_tickets_month['Created Date']).dt.days
 
-# Define the 3 time conditions for the columns (English)
+# Categorías de tiempo para las columnas
 time_categories = [
     {'label': '1–7 Days\n(Short Neglect)', 'cond': lambda df: df['days_open'] <= 7},
     {'label': '8–21 Days\n(Medium Neglect)', 'cond': lambda df: (df['days_open'] > 7) & (df['days_open'] <= 21)},
     {'label': '>21 Days\n(Long Neglect)', 'cond': lambda df: df['days_open'] > 21}
 ]
 
-# HIGH CONTRAST NEON COLORS:
-CRIME_COLOR = '#00FFFF'  # Super bright Cyan for high contrast
+# COLORES NEÓN DE ALTO CONTRASTE:
+CRIME_COLOR = '#00FFFF'  # Cyan brillante para los crímenes
 
-# Colors for each specific radius row
 COLORS_RADII = {
     50: '#39FF14',  # Neon Green
     100: '#FF00FF',  # Neon Magenta
     200: '#FF0000'  # Pure Red
 }
 
-# 3. Setup the 3x3 grid (Large 18x18 figure to fit everything nicely)
+# 3. Configurar la cuadrícula (Matriz grande de 18x18 para que respire bien)
 fig, axes = plt.subplots(nrows=3, ncols=3, figsize=(18, 18))
 fig.patch.set_facecolor('white')
 
-# Fixed city boundaries for consistent scaling across all 9 plots
-xmin, ymin, xmax, ymax = austin_bounds.total_bounds
+# Límites fijos basados en el contorno exterior para una escala uniforme
+xmin, ymin, xmax, ymax = austin_limits.total_bounds
 
 for r_idx, true_radius in enumerate(RADII_METERS):
     current_color = COLORS_RADII[true_radius]
@@ -248,13 +255,16 @@ for r_idx, true_radius in enumerate(RADII_METERS):
 
         tickets_cell = gdf_tickets_month[cat['cond'](gdf_tickets_month)].copy()
 
-        # A. BACKGROUND: Austin City Limits
-        austin_bounds.plot(ax=ax, color='#F8F9FA', edgecolor='#D1D5DB', linewidth=0.8, zorder=1)
+        # A. DETALLE INTERNO: Census Tracts (Subimos a linewidth=0.6 y borde un poco más oscuro)
+        austin_tracts.plot(ax=ax, color='#F3F4F6', edgecolor='#D1D5DB', linewidth=0.6, zorder=1.4)
 
-        # B. TEXTURE: Crime points (Cyan)
-        gdf_crime_month.plot(ax=ax, color=CRIME_COLOR, markersize=1, alpha=0.7, zorder=2)
+        # B. ENCUADRE CARTOGRÁFICO: Contorno exterior (Subimos a linewidth=1.8 y color gris ceniza)
+        austin_limits.plot(ax=ax, color='none', edgecolor='#4B5563', linewidth=1.8, zorder=2)
 
-        # C. MAIN LAYER: Social Disorder buffers (Drawn bigger using visual_radius)
+        # C. TEXTURA DE FONDO: Crímenes del mes (Puntos Cyan)
+        gdf_crime_month.plot(ax=ax, color=CRIME_COLOR, markersize=0.67, alpha=0.6, zorder=3)
+
+        # D. CAPA PRINCIPAL: Zonas de Desorden Social (Búferes agrandados visualmente)
         if not tickets_cell.empty:
             buffers = tickets_cell.copy()
             buffers['geometry'] = buffers.geometry.buffer(visual_radius)
@@ -262,64 +272,74 @@ for r_idx, true_radius in enumerate(RADII_METERS):
 
             if not dissolved_buffers.empty:
                 dissolved_buffers.plot(ax=ax, color=current_color, alpha=0.9, edgecolor='black', linewidth=0.5,
-                                       zorder=3)
+                                       zorder=4)
 
-        # Framing and axes cleanup
+        # Ajuste de ejes y encuadre idéntico para los 9 mapas
         ax.set_xlim(xmin, xmax)
         ax.set_ylim(ymin, ymax)
         ax.axis('off')
 
-        # D. STRATEGIC MATRIX LABELS
-        # Column titles (Only on the top row) - Reduced pad to 10 to stop pushing text into the suptitle
+        # E. TEXTOS Y CATEGORÍAS DE LA MATRIZ
+        # Títulos de las columnas (Solo en la fila de arriba)
         if r_idx == 0:
             ax.set_title(cat['label'], fontsize=16, fontweight='bold', pad=10, color='#374151')
 
-        # Row titles (Only on the far left column) - FORCED TO TRUE RADIUS
+        # Títulos de las filas (Solo en la primera columna a la izquierda)
         if t_idx == 0:
             ax.text(-0.10, 0.5, f'Radius: {true_radius}m', transform=ax.transAxes,
                     fontsize=16, fontweight='bold', color=current_color,
                     rotation=90, va='center', ha='right')
 
-# 4. UNIVERSAL FOOLPROOF LEGEND
+# 4. LEYENDA UNIVERSAL MEJORADA
 legend_elements = [
-    mlines.Line2D([0], [0], color='#D1D5DB', lw=2, label='Austin, TX City Limits'),
-    mlines.Line2D([0], [0], marker='o', color='k', markerfacecolor=CRIME_COLOR, markersize=8, markeredgewidth=0,
-                  label='Crime Incidents'),
+    mlines.Line2D([0], [0], color='#4B5563', lw=2, label='Austin, TX City Limits'),
+    mlines.Line2D([0], [0], marker='o', color='k', markerfacecolor=CRIME_COLOR, markersize=8, markeredgewidth=0, label='Crime Incidents'),
     mpatches.Patch(facecolor=COLORS_RADII[50], alpha=0.9, edgecolor='black', label='Social Disorder Zone (50m)'),
     mpatches.Patch(facecolor=COLORS_RADII[100], alpha=0.9, edgecolor='black', label='Social Disorder Zone (100m)'),
     mpatches.Patch(facecolor=COLORS_RADII[200], alpha=0.9, edgecolor='black', label='Social Disorder Zone (200m)')
 ]
 
-# Place legend at the bottom center, spread across 5 columns so it's a single clean row
+# Colocar la leyenda abajo centrada en una sola fila limpia
 fig.legend(handles=legend_elements, loc='lower center', ncol=5, fontsize=12,
            bbox_to_anchor=(0.5, 0.02), frameon=False)
 
-# Main Report Title - Lowered y to 0.94 so it has its own breathing room at the top
+# Título Principal del Reporte con el ajuste fix de altura (y=0.94) para evitar empalmes
 plt.suptitle(
     f'Austin, TX — Spatial Impact: Social Disorder Radius vs. Resolution Time\n(Month: {STUDY_MONTH}, Year: {STUDY_YEAR})',
     fontsize=22, fontweight='bold', color='#111827', y=0.94)
 
-# FIX: tight_layout runs first, then subplots_adjust forces the strict top gap (top=0.84)
+# Ajuste estricto de espacios para que todo quepa al centavo
 plt.tight_layout()
 plt.subplots_adjust(top=0.84, bottom=0.08, wspace=0.05, hspace=0.15)
+
+# Guardar figura (Descoméntala si necesitas guardarla a disco)
+plt.savefig('figures/smallmultiples3x3_ultimate.png', dpi=300, bbox_inches='tight')
 
 plt.show()
 # %%
 
-# %% SMALL MULTIPLES - 1x3 MATRIX (VISUAL TRICK: LARGE RADIUS, FORCED 200m TEXTS)
+# %% SMALL MULTIPLES - 1x3 MATRIX (ULTIMATE CARTOGRAPHIC EDITION)
 
 import matplotlib.lines as mlines
 import matplotlib.patches as mpatches
 
-STUDY_MONTH = 6  # Example: 1 = January
+# Importamos la fuente para el contorno cartográfico exterior
+from src.data_wrangling import gdf_boundaries as austin_boundary
 
-# VISUAL TRICK: We use 350m so the bubbles look bigger and clearer on the map,
+STUDY_MONTH = 6  # Example: 6 = June
+
+# VISUAL TRICK: We use 275m so the bubbles look bigger and clearer on the map,
 # but we override all labels below so they strictly say "200m".
 VISUAL_RADIUS = 275
 
-# 0. City boundary (Austin, TX)
-austin_bounds = data_loader.jurisdictions_atx.copy().to_crs(CRS_METRIC)
-austin_bounds = austin_bounds.dissolve()
+# 0. PREPARAR GEOMETRÍAS BASE
+# A. Contorno exterior de la ciudad (Austin, TX)
+austin_limits = austin_boundary.copy().to_crs(CRS_METRIC)
+austin_limits = austin_limits.dissolve()
+
+# B. Subdivisiones internas (Census Tracts) recortadas con el contorno real
+texas_tracts = data_loader.census_tracts_atx.copy().to_crs(CRS_METRIC)
+austin_tracts = gpd.clip(texas_tracts, austin_limits)
 
 # 1. Filter crimes for the specific month and year
 gdf_crime_month = gdf_crime[(gdf_crime['Occurred Date'].dt.year == STUDY_YEAR) &
@@ -348,27 +368,30 @@ fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(18, 7))
 fig.patch.set_facecolor('white')
 
 # Fixed city boundaries for consistent scaling across all 3 plots
-xmin, ymin, xmax, ymax = austin_bounds.total_bounds
+xmin, ymin, xmax, ymax = austin_limits.total_bounds
 
 for t_idx, cat in enumerate(time_categories):
     ax = axes[t_idx]
 
     tickets_cell = gdf_tickets_month[cat['cond'](gdf_tickets_month)].copy()
 
-    # A. BACKGROUND: Austin City Limits
-    austin_bounds.plot(ax=ax, color='#F8F9FA', edgecolor='#D1D5DB', linewidth=0.8, zorder=1)
+    # A. DETALLE INTERNO: Census Tracts (Gris claro con bordes definidos)
+    austin_tracts.plot(ax=ax, color='#F3F4F6', edgecolor='#D1D5DB', linewidth=0.6, zorder=1)
 
-    # B. TEXTURE: Crime points (Bigger and brighter cyan)
-    gdf_crime_month.plot(ax=ax, color=CRIME_COLOR, markersize=1, alpha=0.7, zorder=2)
+    # B. ENCUADRE CARTOGRÁFICO: Contorno exterior (Gris oscuro y grueso)
+    austin_limits.plot(ax=ax, color='none', edgecolor='#4B5563', linewidth=1.8, zorder=1)
 
-    # C. MAIN LAYER: Disorder buffers (Drawn bigger for visual impact)
+    # C. TEXTURE: Crime points (Bigger and brighter cyan)
+    gdf_crime_month.plot(ax=ax, color=CRIME_COLOR, markersize=1, alpha=0.7, zorder=3)
+
+    # D. MAIN LAYER: Disorder buffers (Drawn bigger for visual impact)
     if not tickets_cell.empty:
         buffers = tickets_cell.copy()
         buffers['geometry'] = buffers.geometry.buffer(VISUAL_RADIUS)
         dissolved_buffers = buffers[['geometry']].dissolve()
 
         if not dissolved_buffers.empty:
-            dissolved_buffers.plot(ax=ax, color=RADIUS_COLOR, alpha=0.9, edgecolor='black', linewidth=0.5, zorder=3)
+            dissolved_buffers.plot(ax=ax, color=RADIUS_COLOR, alpha=0.9, edgecolor='black', linewidth=0.5, zorder=4)
 
     # Framing and axes cleanup
     ax.set_xlim(xmin, xmax)
@@ -386,11 +409,12 @@ for t_idx, cat in enumerate(time_categories):
                 rotation=90, va='center', ha='right')
 
 # 4. UNIVERSAL LEGEND - FORCED TO 200m FOR THE RESEARCH
+# Actualicé el color del City Limits en la leyenda para que cuadre con el #4B5563 del mapa
 legend_elements = [
-    mlines.Line2D([0], [0], color='#D1D5DB', lw=2, label='Austin, TX City Limits'),
+    mlines.Line2D([0], [0], color='#4B5563', lw=2, label='Austin, TX City Limits'),
     mlines.Line2D([0], [0], marker='o', color='k', markerfacecolor=CRIME_COLOR, markersize=8, markeredgewidth=0,
                   label='Crime Incidents'),
-    mpatches.Patch(facecolor=RADIUS_COLOR, alpha=0.9, edgecolor='black', label='Disorder Impact Zone (200m Buffer)')
+    mpatches.Patch(facecolor=RADIUS_COLOR, alpha=0.9, edgecolor='black', label='Social Disorder Zone (200m Buffer)')
 ]
 
 # Place legend at the bottom center of the figure
@@ -406,113 +430,8 @@ plt.suptitle(
 plt.tight_layout()
 plt.subplots_adjust(top=0.78, bottom=0.15)
 
-plt.show()
-# %%
-
-# %% SMALL MULTIPLES - 3x3 MATRIX (ENGLISH, LEGEND & AUSTIN, TX CONTEXT)
-
-import matplotlib.lines as mlines
-import matplotlib.patches as mpatches
-
-STUDY_MONTH = 1  # Example: 1 = January
-
-# 0. City boundary (Austin, TX)
-austin_bounds = data_loader.jurisdictions_atx.copy().to_crs(CRS_METRIC)
-austin_bounds = austin_bounds.dissolve()
-
-# 1. Filter crimes for the specific month and year
-gdf_crime_month = gdf_crime[(gdf_crime['Occurred Date'].dt.year == STUDY_YEAR) &
-                            (gdf_crime['Occurred Date'].dt.month == STUDY_MONTH)].copy()
-
-# 2. Filter tickets for the month and calculate days open
-mask_tickets = (gdf_disorder['Created Date'].dt.month == STUDY_MONTH) & \
-               (gdf_disorder['Created Date'].dt.year == STUDY_YEAR)
-gdf_tickets_month = gdf_disorder[mask_tickets].copy()
-
-gdf_tickets_month['days_open'] = (gdf_tickets_month['Close Date'] - gdf_tickets_month['Created Date']).dt.days
-
-# Define the 3 time conditions for the columns (English)
-time_categories = [
-    {'label': '1–7 Days\n(Short Neglect)', 'cond': lambda df: df['days_open'] <= 7},
-    {'label': '8–21 Days\n(Medium Neglect)', 'cond': lambda df: (df['days_open'] > 7) & (df['days_open'] <= 21)},
-    {'label': '>21 Days\n(Long Neglect)', 'cond': lambda df: df['days_open'] > 21}
-]
-
-# Vibrant colors for the radii
-radii_colors = {
-    50: '#00C853',  # Emerald Green
-    100: '#FF3D00',  # Fiery Orange/Red
-    200: '#2962FF'  # Electric Blue
-}
-
-CRIME_COLOR = '#1A1A1A'  # Dark charcoal for better texture contrast
-
-# 3. Setup the 3x3 grid
-fig, axes = plt.subplots(nrows=3, ncols=3, figsize=(16, 16))
-fig.patch.set_facecolor('white')
-
-# Fixed city boundaries for consistent scaling across all 9 plots
-xmin, ymin, xmax, ymax = austin_bounds.total_bounds
-
-for r_idx, radius in enumerate(RADII_METERS):
-    current_color = radii_colors[radius]
-
-    for t_idx, cat in enumerate(time_categories):
-        ax = axes[r_idx, t_idx]
-
-        tickets_cell = gdf_tickets_month[cat['cond'](gdf_tickets_month)].copy()
-
-        # A. BACKGROUND: Austin City Limits
-        austin_bounds.plot(ax=ax, color='#F8F9FA', edgecolor='#D1D5DB', linewidth=0.6, zorder=1)
-
-        # B. TEXTURE: Crime points (Darker charcoal, subtle alpha)
-        gdf_crime_month.plot(ax=ax, color=CRIME_COLOR, markersize=0.3, alpha=0.15, zorder=2)
-
-        # C. MAIN LAYER: Disorder buffers
-        if not tickets_cell.empty:
-            buffers = tickets_cell.copy()
-            buffers['geometry'] = buffers.geometry.buffer(radius)
-            dissolved_buffers = buffers[['geometry']].dissolve()
-
-            if not dissolved_buffers.empty:
-                dissolved_buffers.plot(ax=ax, color=current_color, alpha=0.8, edgecolor='black', linewidth=0.4,
-                                       zorder=3)
-
-        # Framing and axes cleanup
-        ax.set_xlim(xmin, xmax)
-        ax.set_ylim(ymin, ymax)
-        ax.axis('off')
-
-        # D. STRATEGIC MATRIX LABELS
-        # Column titles (Top row only)
-        if r_idx == 0:
-            ax.set_title(cat['label'], fontsize=14, fontweight='bold', pad=10, color='#374151')
-
-        # Row titles (Far left column only)
-        if t_idx == 0:
-            ax.text(-0.15, 0.5, f'Radius: {radius}m', transform=ax.transAxes,
-                    fontsize=14, fontweight='bold', color=current_color,
-                    rotation=90, va='center', ha='right')
-
-# 4. UNIVERSAL LEGEND (Foolproof component)
-legend_elements = [
-    mlines.Line2D([0], [0], color='#D1D5DB', lw=2, label='Austin, TX City Limits'),
-    mlines.Line2D([0], [0], marker='o', color='w', markerfacecolor=CRIME_COLOR, markersize=6, alpha=0.6,
-                  label='Crime Incidents'),
-    mpatches.Patch(facecolor='gray', alpha=0.7, edgecolor='black', label='Disorder Impact Zone (Buffer)')
-]
-
-# Place legend at the bottom center of the entire figure
-fig.legend(handles=legend_elements, loc='lower center', ncol=3, fontsize=13,
-           bbox_to_anchor=(0.5, 0.02), frameon=False)
-
-# Main Report Title
-plt.suptitle(
-    f'Austin, TX — Spatial Impact Matrix: Disorder Radius vs. Resolution Time\n(Month: {STUDY_MONTH}, Year: {STUDY_YEAR})',
-    fontsize=18, fontweight='bold', y=0.98, color='#111827')
-
-# Adjust layout so the legend doesn't overlap the plots
-plt.subplots_adjust(bottom=0.08)
+# Descomenta esta línea cuando quieras guardarla de nuevo
+plt.savefig('figures/smallmultiples1x3_cartographic.png', dpi=300, bbox_inches='tight')
 
 plt.show()
 # %%
@@ -602,7 +521,11 @@ agg_all['pct_change_post']   = (agg_all['crimes_post']   - agg_all['crimes_pre']
 print("\n--- Percent change relative to PRE window (ALL YEARS) ---")
 print(agg_all[['radius_m', 'pct_change_during', 'pct_change_post']].to_string(index=False))
 
+
 #%% FIGURE HISTORICAL
+
+# Por si no tienes en memoria RADII_METERS en tu sesión actual:
+RADII_METERS = [50, 100, 200]
 
 fig, axes = plt.subplots(1, 2, figsize=(13, 5))
 
@@ -644,7 +567,11 @@ ax2.axvline(0.5, color='gray', linestyle='--', linewidth=0.8, alpha=0.5)
 ax2.axvline(1.5, color='gray', linestyle='--', linewidth=0.8, alpha=0.5)
 ax2.legend()
 
-plt.suptitle(f'Historical Spatial Event Study (2014-2026)\nn = {len(closed_all_years):,} tickets',
+# === AQUÍ ESTÁ LA MAGIA ===
+# Calculamos la 'n' sacando los valores únicos de ticket_id desde el CSV que ya cargaste
+n_tickets = df_es_all['ticket_id'].nunique()
+
+plt.suptitle(f'Historical Spatial Event Study (2014-2026)\nn = {n_tickets:,} tickets',
              fontsize=12, fontweight='bold')
 plt.tight_layout()
 plt.savefig('figures/event_study_spatial_all_years.png', dpi=150)

@@ -15,13 +15,20 @@ from src.data_loader import (
 gdf_boundaries = census_tracts_atx.to_crs("EPSG:4326")
 gdf_jurisdiction = jurisdictions_atx.to_crs("EPSG:4326")
 boundary_col = 'geoid'
+gdf_boundaries_proj = gdf_boundaries.to_crs("EPSG:3083")
+gdf_jurisdiction_proj = gdf_jurisdiction.to_crs("EPSG:3083")
 
-gdf_boundaries = gpd.sjoin(
-    gdf_boundaries,
-    gdf_jurisdiction[['geometry']],
-    how='inner',
-    predicate='intersects'
-).drop_duplicates(subset=[boundary_col])
+gdf_boundaries_proj["centroid"] = gdf_boundaries_proj.geometry.centroid
+
+gdf_boundaries_joined = gpd.sjoin(
+    gdf_boundaries_proj.set_geometry("centroid"),
+    gdf_jurisdiction_proj[["geometry"]],
+    how="inner",
+    predicate="within"
+)
+
+gdf_boundaries_joined = gdf_boundaries_joined.drop_duplicates(subset=[boundary_col])
+gdf_boundaries = gdf_boundaries_joined.set_geometry("geometry").to_crs("EPSG:4326")
 
 gdf_boundaries[boundary_col] = gdf_boundaries[boundary_col].astype(str)
 austin_demo_data['GEOID'] = austin_demo_data['GEOID'].astype(str)

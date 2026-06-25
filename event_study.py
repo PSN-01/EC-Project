@@ -192,7 +192,7 @@ import matplotlib.patches as mpatches
 # Importamos la fuente para el contorno cartográfico exterior
 from src.data_wrangling import gdf_boundaries as austin_boundary
 
-STUDY_MONTH = 6  # Example: 6 = June
+STUDY_MONTH = 1  # Example: 6 = June
 RADII_METERS = [50, 100, 200]
 
 # VISUAL TRICK: We draw them bigger so they pop on the map,
@@ -225,7 +225,7 @@ gdf_tickets_month['days_open'] = (gdf_tickets_month['Close Date'] - gdf_tickets_
 
 # Categorías de tiempo para las columnas
 time_categories = [
-    {'label': '1–7 Days\n(Short Neglect)', 'cond': lambda df: df['days_open'] <= 7},
+    {'label': '3–7 Days\n(Short Neglect)', 'cond': lambda df: df['days_open'] <= 7},
     {'label': '8–21 Days\n(Medium Neglect)', 'cond': lambda df: (df['days_open'] > 7) & (df['days_open'] <= 21)},
     {'label': '>21 Days\n(Long Neglect)', 'cond': lambda df: df['days_open'] > 21}
 ]
@@ -326,7 +326,7 @@ import matplotlib.patches as mpatches
 # Importamos la fuente para el contorno cartográfico exterior
 from src.data_wrangling import gdf_boundaries as austin_boundary
 
-STUDY_MONTH = 6  # Example: 6 = June
+STUDY_MONTH = 1  # Example: 6 = June
 
 # VISUAL TRICK: We use 275m so the bubbles look bigger and clearer on the map,
 # but we override all labels below so they strictly say "200m".
@@ -354,7 +354,7 @@ gdf_tickets_month['days_open'] = (gdf_tickets_month['Close Date'] - gdf_tickets_
 
 # Define the 3 time conditions for the columns (English)
 time_categories = [
-    {'label': '1–7 Days\n(Short Neglect)', 'cond': lambda df: df['days_open'] <= 7},
+    {'label': '3–7 Days\n(Short Neglect)', 'cond': lambda df: df['days_open'] <= 7},
     {'label': '8–21 Days\n(Medium Neglect)', 'cond': lambda df: (df['days_open'] > 7) & (df['days_open'] <= 21)},
     {'label': '>21 Days\n(Long Neglect)', 'cond': lambda df: df['days_open'] > 21}
 ]

@@ -587,3 +587,24 @@ for label, mask in [('Short neglect (1–7 days)',  df_es_all['days_open'] <= 7)
     print(f"\n  {label}  (n tickets = {mask.sum() // len(RADII_METERS):,})")
     print(sub.to_string())
 
+
+#%%
+
+# Pruebita random a ver si cala
+
+for label, mask in [('Short neglect (1–7 days)',  df_es_all['days_open'] <= 7),
+                    ('Long neglect  (>21 days)',   df_es_all['days_open'] >  21)]:
+    sub = df_es_all[mask].groupby('radius_m')[['crimes_pre', 'crimes_during', 'crimes_post']].mean()
+    print(f"\n  {label}  (n tickets = {mask.sum() // len(RADII_METERS):,})")
+    print(sub.to_string())
+
+import scipy.stats as stats
+
+print("\n--- SIGNIFICANCE TESTS (PRE vs POST) ---")
+for radius in RADII_METERS:
+    df_sub = df_es_all[df_es_all['radius_m'] == radius].dropna(subset=['crimes_pre', 'crimes_post'])
+    t_stat, p_val_t = stats.ttest_rel(df_sub['crimes_post'], df_sub['crimes_pre'])
+    w_stat, p_val_w = stats.wilcoxon(df_sub['crimes_post'], df_sub['crimes_pre'], zero_method='zsplit')
+    print(f"Radius {radius}m (n={len(df_sub)}):")
+    print(f"  T-Test   -> p-value: {p_val_t:.4e}")
+    print(f"  Wilcoxon -> p-value: {p_val_w:.4e}")
